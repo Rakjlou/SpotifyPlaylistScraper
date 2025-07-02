@@ -332,6 +332,31 @@
        // Email regex pattern
        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
 
+       // Helper function to create timeout signal combined with optional abort controller
+       function createTimeoutSignal(timeoutMs = 30000) {
+           const timeoutSignal = AbortSignal.timeout(timeoutMs);
+           return currentAbortController 
+               ? AbortSignal.any([currentAbortController.signal, timeoutSignal])
+               : timeoutSignal;
+       }
+
+       // Helper function to classify errors and generate appropriate messages
+       function classifyError(error, operation = 'operation') {
+           if (error.name === 'AbortError') {
+               if (currentAbortController && currentAbortController.signal.aborted) {
+                   return { type: 'user_abort', message: null };
+               } else {
+                   return { type: 'timeout', message: `${operation} timed out. Please check your internet connection and try again.` };
+               }
+           } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+               return { type: 'network', message: 'Network connection failed. Please check your internet connection and try again.' };
+           } else if (error.message.includes('DNS') || error.message.includes('resolve')) {
+               return { type: 'dns', message: 'Unable to reach Spotify servers. Please check your internet connection.' };
+           } else {
+               return { type: 'other', message: `${operation} error: ${error.message}` };
+           }
+       }
+
        // Get access token using Client Credentials flow
        async function getAccessToken() {
            const clientId = document.getElementById('clientId').value;
@@ -343,10 +368,7 @@
 
            const authString = btoa(`${clientId}:${clientSecret}`);
            try {
-               const timeoutSignal = AbortSignal.timeout(30000);
-               const signal = currentAbortController 
-                   ? AbortSignal.any([currentAbortController.signal, timeoutSignal])
-                   : timeoutSignal;
+               const signal = createTimeoutSignal();
                    
                const response = await fetch('https://accounts.spotify.com/api/token', {
                    method: 'POST',
@@ -395,18 +417,11 @@
                accessToken = data.access_token;
                return accessToken;
            } catch (error) {
-               if (error.name === 'AbortError') {
-                   if (currentAbortController && currentAbortController.signal.aborted) {
-                       return null; // User-initiated abort
-                   } else {
-                       showError('Request timed out. Please check your internet connection and try again.');
-                   }
-               } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                   showError('Network connection failed. Please check your internet connection and try again.');
-               } else if (error.message.includes('DNS') || error.message.includes('resolve')) {
-                   showError('Unable to reach Spotify servers. Please check your internet connection.');
-               } else {
-                   showError(`${error.message}`);
+               const errorInfo = classifyError(error, 'Authentication request');
+               if (errorInfo.type === 'user_abort') {
+                   return null;
+               } else if (errorInfo.message) {
+                   showError(errorInfo.message);
                }
                return null;
            }
@@ -470,8 +485,7 @@
 
            try {
                const offset = page * resultsPerPage;
-               const timeoutSignal = AbortSignal.timeout(30000);
-               const signal = AbortSignal.any([currentAbortController.signal, timeoutSignal]);
+               const signal = createTimeoutSignal();
                
                const response = await fetch(`https://api.spotify.com/v1/search?q=$${encodeURIComponent(currentQuery)}&type=playlist&limit=${resultsPerPage}&offset=${offset}`, {
                    headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -510,16 +524,11 @@
                updatePagination();
 
            } catch (error) {
-               if (error.name === 'AbortError') {
-                   if (currentAbortController.signal.aborted) {
-                       return; // User-initiated abort
-                   } else {
-                       showError('Search timed out. Please check your internet connection and try again.');
-                   }
-               } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                   showError('Network connection failed. Please check your internet connection and try again.');
-               } else {
-                   showError(`Search error: ${error.message}`);
+               const errorInfo = classifyError(error, 'Search');
+               if (errorInfo.type === 'user_abort') {
+                   return;
+               } else if (errorInfo.message) {
+                   showError(errorInfo.message);
                }
            } finally {
                cleanupAfterLoading("Page loaded.");
@@ -542,8 +551,7 @@
            setupForLoading('Starting full export...');
 
            try {
-               const timeoutSignal = AbortSignal.timeout(30000);
-               const signal = AbortSignal.any([currentAbortController.signal, timeoutSignal]);
+               const signal = createTimeoutSignal();
                
                const initialResponse = await fetch(`https://api.spotify.com/v1/search?q=$${encodeURIComponent(query)}&type=playlist&limit=1`, {
                    headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -592,8 +600,7 @@
                     }
 
                     const offset = i * limit;
-                    const timeoutSignal = AbortSignal.timeout(30000);
-                    const signal = AbortSignal.any([currentAbortController.signal, timeoutSignal]);
+                    const signal = createTimeoutSignal();
                     
                     const pageResponse = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=playlist&limit=${limit}&offset=${offset}`, {
                          headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -675,17 +682,12 @@
                }
 
            } catch (error) {
-               if (error.name === 'AbortError') {
-                   if (currentAbortController.signal.aborted) {
-                       userStopped = true;
-                       return; // User-initiated abort
-                   } else {
-                       showError('Export timed out. Please check your internet connection and try again.');
-                   }
-               } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                   showError('Network connection failed. Please check your internet connection and try again.');
-               } else {
-                   showError(`Export error: ${error.message}`);
+               const errorInfo = classifyError(error, 'Export');
+               if (errorInfo.type === 'user_abort') {
+                   userStopped = true;
+                   return;
+               } else if (errorInfo.message) {
+                   showError(errorInfo.message);
                }
            } finally {
                if (!userStopped) {
@@ -724,10 +726,7 @@
             }
             try {
                 // Corrected the fetch URL back to the original endpoint
-                const timeoutSignal = AbortSignal.timeout(30000);
-                const signal = currentAbortController 
-                    ? AbortSignal.any([currentAbortController.signal, timeoutSignal])
-                    : timeoutSignal;
+                const signal = createTimeoutSignal();
                     
                 const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -788,20 +787,15 @@
                 playlistCache.set(playlistId, playlistData);
                 return playlistData;
             } catch (error) {
-                if (error.name === 'AbortError') {
-                    if (currentAbortController && currentAbortController.signal.aborted) {
-                        return null; // User-initiated abort
-                    } else {
-                        console.log(`Timeout fetching playlist ${playlistId}`);
-                        return null;
-                    }
-                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    console.log(`Network error fetching playlist ${playlistId}`);
+                const errorInfo = classifyError(error, `playlist ${playlistId}`);
+                if (errorInfo.type === 'user_abort') {
                     return null;
-                } else {
+                } else if (errorInfo.type === 'other') {
                     console.error(`Error fetching playlist ${playlistId}:`, error);
-                    return null;
+                } else if (errorInfo.message) {
+                    console.log(errorInfo.message);
                 }
+                return null;
             }
        }
 
