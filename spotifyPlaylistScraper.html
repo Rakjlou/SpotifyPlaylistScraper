@@ -510,8 +510,11 @@
                if (userStopped) {
                     if (allPlaylistsWithEmails.length > 0) {
                         const progressText = document.getElementById('progressText');
-                        progressText.innerHTML = `Export stopped. <a href="#" onclick="exportData(pagePlaylists.filter(p => p.emails.length > 0)); return false;">Export ${allPlaylistsWithEmails.length} playlists found so far?</a>`;
-                        cleanupAfterLoading("", true);
+                        window.partialExportData = allPlaylistsWithEmails;
+                        progressText.innerHTML = `Export stopped. ${allPlaylistsWithEmails.length} playlists with emails were found.<br><button onclick="exportData(window.partialExportData); return false;" style="margin-top: 10px;">Export ${allPlaylistsWithEmails.length} playlists</button>`;
+                        disableButtons(false);
+                        currentAbortController = null;
+                        // Keep status section visible to show the export button
                     } else {
                         cleanupAfterLoading("Export stopped. No playlists with emails found.");
                     }
