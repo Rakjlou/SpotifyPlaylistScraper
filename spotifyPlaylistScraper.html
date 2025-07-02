@@ -700,8 +700,10 @@
        }
 
        function updateResultsCount() {
-            const emailsInView = pagePlaylists.filter(p => p.emails.length > 0).length;
-            document.getElementById('resultsCount').textContent = `Showing ${displayedPlaylistCount} playlists (${emailsInView} with emails)`;
+            const totalRows = document.querySelectorAll('.results-table tbody tr').length;
+            const emailCells = document.querySelectorAll('.results-table .emails');
+            const emailsInView = Array.from(emailCells).filter(cell => cell.textContent.trim() !== '-').length;
+            document.getElementById('resultsCount').textContent = `Showing ${totalRows} playlists (${emailsInView} with emails)`;
        }
 
        function updatePagination() {
