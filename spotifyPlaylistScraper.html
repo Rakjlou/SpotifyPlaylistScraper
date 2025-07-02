@@ -424,6 +424,7 @@
        }
 
        async function exportAll() {
+            let userStopped = false;
            const query = document.getElementById('searchQuery').value.trim();
            if (!query) {
                showError('Please enter a search query');
@@ -458,10 +459,13 @@
                totalEmailsFound = 0;
 
                for (let i = 0; i < totalPages; i++) {
-                    if (currentAbortController.signal.aborted) break;
+                    if (currentAbortController.signal.aborted) {
+                        userStopped = true;
+                        break;
+                    }
 
                     const offset = i * limit;
-                    const pageResponse = await fetch(`https://api.spotify.com/v1/search?q=$${encodeURIComponent(query)}&type=playlist&limit=${limit}&offset=${offset}`, {
+                    const pageResponse = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=playlist&limit=${limit}&offset=${offset}`, {
                          headers: { 'Authorization': `Bearer ${accessToken}` },
                          signal: currentAbortController.signal
                     });
@@ -478,7 +482,10 @@
                     const pageData = await pageResponse.json();
 
                     for (const playlist of pageData.playlists.items) {
-                        if (currentAbortController.signal.aborted) break;
+                        if (currentAbortController.signal.aborted) {
+                            userStopped = true;
+                            break;
+                        }
                         if (!playlist) {
                             processedCount++;
                             updateProgress(processedCount, totalToProcess, totalEmailsFound);
@@ -500,6 +507,17 @@
 
                document.getElementById('pagination').style.display = 'none';
 
+               if (userStopped) {
+                    if (allPlaylistsWithEmails.length > 0) {
+                        const progressText = document.getElementById('progressText');
+                        progressText.innerHTML = `Export stopped. <a href="#" onclick="exportData(pagePlaylists.filter(p => p.emails.length > 0)); return false;">Export ${allPlaylistsWithEmails.length} playlists found so far?</a>`;
+                        cleanupAfterLoading("", true);
+                    } else {
+                        cleanupAfterLoading("Export stopped. No playlists with emails found.");
+                    }
+                    return;
+               }
+
                if (allPlaylistsWithEmails.length > 0) {
                    exportData(allPlaylistsWithEmails);
                    updateProgressText(`Export completed. ${allPlaylistsWithEmails.length} playlists with emails exported.`);
@@ -510,7 +528,9 @@
            } catch (error) {
                if (error.name !== 'AbortError') showError(`Export error: ${error.message}`);
            } finally {
-               cleanupAfterLoading("Export finished.");
+               if (!userStopped) {
+                    cleanupAfterLoading("Export finished.");
+               }
            }
        }
 
@@ -649,10 +669,13 @@
             totalEmailsFound = 0;
        }
 
-       function cleanupAfterLoading(text) {
-            updateProgressText(text);
+       function cleanupAfterLoading(text, keepProgressText = false) {
+            if (!keepProgressText) {
+                updateProgressText(text);
+            }
             disableButtons(false);
             currentAbortController = null;
+            document.getElementById('statusSection').style.display = 'none';
        }
 
        function disableButtons(disabled) {
