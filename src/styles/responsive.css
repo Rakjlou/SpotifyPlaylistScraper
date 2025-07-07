@@ -1,0 +1,68 @@
+/* Responsive design styles */
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .search-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .button-group button {
+        width: 100%;
+    }
+    
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .results-table {
+        font-size: 12px;
+    }
+    
+    .results-table th,
+    .results-table td {
+        padding: 8px;
+    }
+    
+    .playlist-cover {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .description-preview {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    .config-section, .search-section, .results-section, .status-section {
+        padding: 15px;
+    }
+    
+    .form-group input,
+    .search-row input[type="text"] {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .pagination {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

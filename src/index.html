@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Playlist Contact Scraper</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Spotify Playlist Contact Scraper</h1>
+
+        <!-- API Configuration Section -->
+        <div class="config-section">
+            <h2>API Configuration</h2>
+            <div class="form-group">
+                <label for="clientId">Client ID</label>
+                <input type="text" id="clientId" placeholder="Enter your Spotify Client ID">
+            </div>
+            <div class="form-group">
+                <label for="clientSecret">Client Secret</label>
+                <input type="password" id="clientSecret" placeholder="Enter your Spotify Client Secret">
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <h2>Search</h2>
+            <div class="search-row">
+                <input type="text" id="searchQuery" placeholder='Enter search query (e.g., "@gmail.com")'>
+                <div class="button-group">
+                    <button id="searchBtn">Search</button>
+                    <button id="exportAllBtn">Export All</button>
+                    <button id="stopBtn" style="display: none;">Stop</button>
+                </div>
+            </div>
+            <div id="errorMessage"></div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="status-section" id="statusSection">
+            <div class="progress-bar-background">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div class="progress-info">
+                <span id="progressText">Processing...</span>
+                <span id="progressStats">0 emails found</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-header">
+                <span id="resultsCount">No results yet</span>
+                <div class="controls-group">
+                    <input type="checkbox" id="showWithoutEmails">
+                    <label for="showWithoutEmails">Include playlists without emails</label>
+                </div>
+            </div>
+
+            <div id="resultsContainer">
+                <p class="placeholder-text">Enter your API credentials and perform a search to see results.</p>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button id="prevBtn" disabled>Previous</button>
+                <span class="pagination-info" id="pageInfo">Page 1 of 1</span>
+                <button id="nextBtn">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Script -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
